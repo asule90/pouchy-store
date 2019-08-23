@@ -108,7 +108,8 @@ class Login extends BaseComponent {
 class Home extends BaseComponent {
   state = {
     input_text: '',
-    tags: ''
+    tags: '',
+    id: ''
   }
 
   tagStyle = {
@@ -135,14 +136,28 @@ class Home extends BaseComponent {
           todosStore.data.map((todo, index) => (
             <div key={todo._id}>
               <div>
-                {index + 1}. {todo.text}
+                <input
+                  type="checkbox"
+                  checked={todo.done}
+                  onChange={() => this.toggleTask(todo)}
+                />
+                <span>
+                  {(todo.done) ? <s>{todo.text}</s> : todo.text}
+                </span>
                 {
                   !todosStore.checkIsUploaded(todo) && (
-                    ` (belum upload)`
+                    ` (!sync)`
                   )
                 }
-                {` `}
-                <button onClick={() => this.deleteTodo(todo._id)}>
+                <button
+                  style={{marginLeft:'50px'}}
+                  onClick={() => this.editTodo(todo)}
+                >
+                  {(this.state.id && this.state.id===todo._id) ? 'cancel' : 'edit'}
+                </button>
+                <button
+                  onClick={() => this.deleteTodo(todo._id)}
+                >
                   X
                 </button>
               </div>
@@ -153,11 +168,23 @@ class Home extends BaseComponent {
           ))
         }
 
-        <h2>add new todo</h2>
-        <form onSubmit={this.addTodo}>
-          <p><input type='text' placeholder="todo" value={this.state.input_text} onChange={this.setInput_text} /></p>
+        <h2>{(this.state.id ? 'edit' : 'new')} todo</h2>
+        <form onSubmit={this.saveTodo}>
           <p>
-            <input type='text' placeholder="comma separated tags" value={this.state.tags} onChange={this.setTags} />
+            <input
+              type='text'
+              placeholder="todo"
+              value={this.state.input_text}
+              onChange={this.setInput_text}
+            />
+          </p>
+          <p>
+            <input
+              type='text'
+              placeholder="comma separated tags"
+              value={this.state.tags}
+              onChange={this.setTags}
+            />
           </p>
           <p><button>submit</button></p>
         </form>
@@ -185,25 +212,74 @@ class Home extends BaseComponent {
     });
   }
 
+  /**
+   * Edit Task
+   * resetState if it was highlighted task
+   * otherwise setState
+   */
+  editTodo = (task) => {
+    if (this.state.id && this.state.id===task._id) {
+      this.resetState();
+    } else {
+      this.setState({
+        input_text: task.text,
+        tags: task.tags.join(','),
+        id: task._id
+      });
+    }
+  }
+
+  toggleTask = async (task) => {
+    await todosStore.editItem(task._id, {
+      text: task.text,
+      tags: task.tags,
+      done: !task.done
+    }, userStore.data);
+  }
+
   logout = async () => {
     await todosStore.deinitialize();
     await userStore.deleteSingle();
   }
 
-  addTodo = async (event) => {
+  resetState = () => {
+    this.setState({
+      input_text: '',
+      tags: '',
+      id: '',
+      done: false
+    });
+  }
+
+  saveTodo = async (event) => {
     event.preventDefault();
+    if (!this.state.input_text) {
+      alert('Task is required');
+      return;
+    }
     if (!this.state.tags) {
       alert('Tag is required');
       return;
     }
+
     const tags = this.state.tags.split(',').map((v) => {
       return v.trim();
     })
-    await todosStore.addItem({
-      text: this.state.input_text,
-      tags: tags
-    }, userStore.data);
-    this.setState({ input_text: '', tags: '' });
+
+    if (this.state.id) {
+      await todosStore.editItem(this.state.id, {
+        text: this.state.input_text,
+        tags: tags,
+      }, userStore.data);
+    } else {
+      await todosStore.addItem({
+        text: this.state.input_text,
+        tags: tags,
+        done: false
+      }, userStore.data);
+    }
+
+    this.resetState();
   }
 
   deleteTodo = async (id) => {
