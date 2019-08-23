@@ -2,6 +2,7 @@ import React from 'react';
 
 import userStore from '@/store/user';
 import todosStore from '@/store/todos';
+var moment = require('moment');
 
 // for playin in browser console
 window.userStore = userStore;
@@ -107,6 +108,12 @@ class Login extends BaseComponent {
 class Home extends BaseComponent {
   state = {
     input_text: '',
+    tags: ''
+  }
+
+  tagStyle = {
+    color: 'gray',
+    'fontSize': '11px'
   }
 
   render() {
@@ -118,7 +125,7 @@ class Home extends BaseComponent {
 
         <h2>
           todos: <button onClick={this.upload}>
-            {`upload (${todosStore.countUnuploadeds()})`}
+            {`sync (${todosStore.countUnuploadeds()})`}
           </button>
         </h2>
         <pre>
@@ -126,24 +133,32 @@ class Home extends BaseComponent {
         </pre>
         {
           todosStore.data.map((todo, index) => (
-            <p key={todo._id}>
-              {index + 1}. {todo.text}
-              {
-                !todosStore.checkIsUploaded(todo) && (
-                  ` (belum upload)`
-                )
-              }
-              {` `}
-              <button onClick={() => this.deleteTodo(todo._id)}>
-                X
-              </button>
-            </p>
+            <div key={todo._id}>
+              <div>
+                {index + 1}. {todo.text}
+                {
+                  !todosStore.checkIsUploaded(todo) && (
+                    ` (belum upload)`
+                  )
+                }
+                {` `}
+                <button onClick={() => this.deleteTodo(todo._id)}>
+                  X
+                </button>
+              </div>
+              <div style={this.tagStyle}>
+                {moment(todo.createdAt).format('D/MMM/YYYY, H:mm:ss')} , {todo.tags.map((v) => (' #'+v))}
+              </div>
+            </div>
           ))
         }
 
         <h2>add new todo</h2>
         <form onSubmit={this.addTodo}>
-          <p><input type='text' value={this.state.input_text} onChange={this.setInput_text} /></p>
+          <p><input type='text' placeholder="todo" value={this.state.input_text} onChange={this.setInput_text} /></p>
+          <p>
+            <input type='text' placeholder="comma separated tags" value={this.state.tags} onChange={this.setTags} />
+          </p>
           <p><button>submit</button></p>
         </form>
       </div>
@@ -164,6 +179,12 @@ class Home extends BaseComponent {
     });
   }
 
+  setTags = (event) => {
+    this.setState({
+      tags: event.target.value,
+    });
+  }
+
   logout = async () => {
     await todosStore.deinitialize();
     await userStore.deleteSingle();
@@ -171,10 +192,18 @@ class Home extends BaseComponent {
 
   addTodo = async (event) => {
     event.preventDefault();
+    if (!this.state.tags) {
+      alert('Tag is required');
+      return;
+    }
+    const tags = this.state.tags.split(',').map((v) => {
+      return v.trim();
+    })
     await todosStore.addItem({
       text: this.state.input_text,
+      tags: tags
     }, userStore.data);
-    this.setState({ input_text: '' });
+    this.setState({ input_text: '', tags: '' });
   }
 
   deleteTodo = async (id) => {
