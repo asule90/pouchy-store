@@ -1,0 +1,17 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "docker_run",
+            "type": "shell",
+            "command": "docker run -d --rm --network=host --name=pouchy-store pouchy-store"
+        },
+        {
+            "label": "docker_build",
+            "type": "shell",
+            "command": "docker build -t pouchy-store ."
+        },
+    ]
+}
