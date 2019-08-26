@@ -1,7 +1,7 @@
 import React from 'react';
 
-import userStore from '@/store/user';
-import todosStore from '@/store/todos';
+import userStore from './store/user';
+import todosStore from './store/todos';
 var moment = require('moment');
 
 // for playin in browser console
